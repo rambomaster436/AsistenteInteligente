@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Diapositivas Educativas con IA</title>
+    <link rel="stylesheet" href="IA.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="logoIA.png" alt="Logo" class="logo">
+        </div>
+        <h1>Generador de Diapositivas Educativas con IA</h1>
+    </header>
+
+    <section class="content">
+        <div class="form-container">
+            <h2>Introduce el texto para las diapositivas</h2>
+            <textarea id="inputText" rows="10" placeholder="Escribe el contenido aquí..." required></textarea>
+            <div class="button-container">
+                <button id="previewButton">Generar Vista Previa</button>
+                <button id="clearPreviewButton">Borrar Vista Previa</button> <!-- Nuevo botón -->
+                <button id="generateButton" disabled>Generar Diapositivas</button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <h2>Vista Previa del Contenido</h2>
+            <div id="slidesPreview">
+                <!-- Las diapositivas generadas se mostrarán aquí -->
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Generador de Diapositivas Educativas con IA</p>
+    </footer>
+
+    <script>
+        const previewButton = document.getElementById("previewButton");
+        const clearPreviewButton = document.getElementById("clearPreviewButton"); // Botón para borrar vista previa
+        const generateButton = document.getElementById("generateButton");
+        const inputText = document.getElementById("inputText");
+        const slidesPreview = document.getElementById("slidesPreview");
+
+        // Función para generar vista previa
+        previewButton.addEventListener("click", async () => {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert("Por favor, introduce un texto para generar la vista previa.");
+                return;
+            }
+
+            slidesPreview.innerHTML = "<p>Cargando vista previa...</p>";
+            try {
+                const response = await fetch("http://127.0.0.1:5001/generate-slides-preview", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Error al generar la vista previa.");
+                }
+
+                const data = await response.json();
+                slidesPreview.innerHTML = "";
+
+                data.slides.forEach((slide, index) => {
+                    const slideDiv = document.createElement("div");
+                    slideDiv.classList.add("slide");
+                    slideDiv.innerHTML = `<strong>Diapositiva ${index + 1}:</strong> <p>${slide.content}</p>`;
+                    slidesPreview.appendChild(slideDiv);
+                });
+
+                generateButton.disabled = false; // Activa el botón de generar diapositivas
+            } catch (error) {
+                console.error(error);
+                slidesPreview.innerHTML = "<p>Error al cargar la vista previa.</p>";
+            }
+        });
+
+        // Función para borrar la vista previa
+        clearPreviewButton.addEventListener("click", () => {
+            slidesPreview.innerHTML = ""; // Limpia el contenido de la vista previa
+            generateButton.disabled = true; // Desactiva el botón de generar diapositivas
+        });
+
+        // Función para generar diapositivas y descargarlas
+        generateButton.addEventListener("click", async () => {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert("Por favor, introduce un texto para generar las diapositivas.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5001/generate-slides", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Error al generar las diapositivas.");
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "diapositivas.pptx";
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error(error);
+                alert("Error al generar y descargar las diapositivas.");
+            }
+        });
+    </script>
+</body>
+</html>
